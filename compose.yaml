@@ -1,0 +1,63 @@
+version: '3.8'
+networks:
+  test:
+    name: grpc_test
+
+services:
+  server1:
+    container_name: server_a
+    image: grpc-sim-peer
+    privileged: true
+    ports:
+      - 50051:50051  # Map port 80 of the container to port 8081 on the host
+    environment:
+      - SERVER_ID=server_a 
+      - LISTEN_IP=0.0.0.0
+      - LISTEN_PORT=50051 
+      - CONNECT_IP=server2
+      - CONNECT_PORT=50052
+    volumes:
+      - ~/grpc_gossip_simulator_fv:/app
+    command: ["./main"]
+    networks:
+      - test
+      
+  server2:
+    container_name: server_b
+    image: grpc-sim-peer
+    privileged: true
+    ports:
+      - 50052:50052  # Map port 80 of the container to port 8082 on the host
+    environment:
+      - SERVER_ID=server_b 
+      - LISTEN_IP=0.0.0.0
+      - LISTEN_PORT=50052 
+      - CONNECT_IP=server3
+      - CONNECT_PORT=50053
+    command: ["./main"]
+    volumes:
+      - ~/grpc_gossip_simulator_fv:/app
+    networks:
+      - test
+
+
+
+  server3:
+    container_name: server_c
+    image: grpc-sim-peer
+    privileged: true
+    ports:
+      - 50053:50053  # Map port 80 of the container to port 8083 on the host
+    environment:
+      - SERVER_ID=server_c 
+      - LISTEN_IP=0.0.0.0
+      - LISTEN_PORT=50053
+      - CONNECT_IP=server1
+      - CONNECT_PORT=50051
+    command: ["./main"]
+    volumes:
+      - ~/grpc_gossip_simulator_fv:/app
+    networks:
+      - test
+
+ 

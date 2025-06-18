@@ -1,0 +1,18 @@
+syntax = "proto3";
+ 
+package gossip;
+ 
+option go_package = "grpc_gossip_simulator_fv/gossip";
+ 
+// GossipService defines the gRPC service for exchanging gossip messages.
+service GossipService {
+  // GossipStream is a bidirectional streaming RPC that allows two parties to
+  // exchange GossipMessages continuously.
+  rpc GossipStream(stream GossipMessage) returns (stream GossipMessage);
+}
+ 
+// GossipMessage represents a single gossip message.
+message GossipMessage {
+  string sender_id = 1; // The IP Address of sender
+  string content = 2;   // The actual message content.
+}
