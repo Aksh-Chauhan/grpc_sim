@@ -89,7 +89,7 @@ func (s *gossipServer) GossipStream(stream gossip.GossipService_GossipStreamServ
 }
 
 // startServer initializes and starts a gRPC server with mTLS.
-func startServer(cfg serverConfig, wg *sync.WaitGroup) {
+func startServer(cfg serverConfig, wg *sync.WaitGroup, KeylogFile io.Writer) {
 	defer wg.Done()
 
 	// Load server's certificate and key without quotes
@@ -110,10 +110,13 @@ func startServer(cfg serverConfig, wg *sync.WaitGroup) {
 
 	// Configure TLS for the server with client authentication (mTLS)
 	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{serverCert},
-		ClientCAs:    caCertPool,
-		ClientAuth:   tls.RequireAndVerifyClientCert, // Require client cert and verify against CA
-		MinVersion:   tls.VersionTLS12,
+		Certificates:           []tls.Certificate{serverCert},
+		ClientCAs:              caCertPool,
+		ClientAuth:             tls.RequireAndVerifyClientCert, // Require client cert and verify against CA
+		MinVersion:             tls.VersionTLS12,
+		KeyLogWriter:           KeylogFile,
+		InsecureSkipVerify:     true,
+		SessionTicketsDisabled: true,
 	}
 
 	// Create gRPC server credentials from TLS config
@@ -139,7 +142,7 @@ func startServer(cfg serverConfig, wg *sync.WaitGroup) {
 
 // startClient initializes a gRPC client with mTLS.
 // startClient initializes a gRPC client with mTLS.
-func startClient(cfg serverConfig, wg *sync.WaitGroup) {
+func startClient(cfg serverConfig, wg *sync.WaitGroup, KeylogFile io.Writer) {
 	defer wg.Done()
 
 	time.Sleep(2 * time.Second)
@@ -162,10 +165,13 @@ func startClient(cfg serverConfig, wg *sync.WaitGroup) {
 
 	// Configure TLS for the client
 	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{clientCert},
-		RootCAs:      caCertPool,             // Trust server certs signed by this CA
-		ServerName:   os.Getenv("SERVER_ID"), // IMPORTANT: Must match the Common Name (CN) in server.crt
-		MinVersion:   tls.VersionTLS12,
+		Certificates:           []tls.Certificate{clientCert},
+		RootCAs:                caCertPool,             // Trust server certs signed by this CA
+		ServerName:             os.Getenv("SERVER_ID"), // IMPORTANT: Must match the Common Name (CN) in server.crt
+		MinVersion:             tls.VersionTLS12,
+		KeyLogWriter:           KeylogFile,
+		InsecureSkipVerify:     true,
+		SessionTicketsDisabled: true,
 	}
 
 	// Create gRPC client credentials from TLS config
@@ -244,6 +250,14 @@ func main() {
 	if serverID == "" || listenIP == "" || listenPort == "" || connectIP == "" || connectPort == "" {
 		log.Fatalf("Missing environment variables. Please set SERVER_ID, LISTEN_IP, LISTEN_PORT, CONNECT_IP, and CONNECT_PORT.")
 	}
+	os.Remove("/home/ssl_keys.log")
+
+	KeylogFile, err := os.OpenFile("/home/ssl_keys.log", os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		fmt.Printf("Error opening keylog file : %s", err)
+	}
+
+	defer KeylogFile.Close()
 
 	cfg := serverConfig{
 		id:          serverID,
@@ -258,13 +272,13 @@ func main() {
 	// Start the server part for this instance
 	wg.Add(1)
 	go func() {
-		startServer(cfg, &wg)
+		startServer(cfg, &wg, KeylogFile)
 	}()
 
 	// Start the client part for this instance
 	wg.Add(1)
 	go func() {
-		startClient(cfg, &wg)
+		startClient(cfg, &wg, KeylogFile)
 	}()
 
 	log.Printf("%s: Running. Press Ctrl+C to stop.", cfg.id)
