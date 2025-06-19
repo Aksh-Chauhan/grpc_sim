@@ -24,8 +24,9 @@ const (
 // GossipMessage represents a single gossip message.
 type GossipMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	SenderId      string                 `protobuf:"bytes,1,opt,name=sender_id,json=senderId,proto3" json:"sender_id,omitempty"` // The IP Address of sender
-	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`                   // The actual message content.
+	SenderIp      string                 `protobuf:"bytes,1,opt,name=sender_ip,json=senderIp,proto3" json:"sender_ip,omitempty"`       // The IP Address of sender
+	ReceiverIp    string                 `protobuf:"bytes,2,opt,name=receiver_ip,json=receiverIp,proto3" json:"receiver_ip,omitempty"` // The IP Address of sender
+	Content       string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`                         // The actual message content.
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -60,16 +61,23 @@ func (*GossipMessage) Descriptor() ([]byte, []int) {
 	return file_gossip_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *GossipMessage) GetSenderId() string {
+func (x *GossipMessage) GetSenderIp() string {
 	if x != nil {
-		return x.SenderId
+		return x.SenderIp
+	}
+	return ""
+}
+
+func (x *GossipMessage) GetReceiverIp() string {
+	if x != nil {
+		return x.ReceiverIp
 	}
 	return ""
 }
 
 func (x *GossipMessage) GetContent() string {
 	if x != nil {
-		return x.Content
+		return x.Content + "-" + x.SenderIp + "->" + x.ReceiverIp
 	}
 	return ""
 }
@@ -78,10 +86,12 @@ var File_gossip_proto protoreflect.FileDescriptor
 
 const file_gossip_proto_rawDesc = "" +
 	"\n" +
-	"\fgossip.proto\x12\x06gossip\"F\n" +
+	"\fgossip.proto\x12\x06gossip\"g\n" +
 	"\rGossipMessage\x12\x1b\n" +
-	"\tsender_id\x18\x01 \x01(\tR\bsenderId\x12\x18\n" +
-	"\acontent\x18\x02 \x01(\tR\acontent2Q\n" +
+	"\tsender_ip\x18\x01 \x01(\tR\bsenderIp\x12\x1f\n" +
+	"\vreceiver_ip\x18\x02 \x01(\tR\n" +
+	"receiverIp\x12\x18\n" +
+	"\acontent\x18\x03 \x01(\tR\acontent2Q\n" +
 	"\rGossipService\x12@\n" +
 	"\fGossipStream\x12\x15.gossip.GossipMessage\x1a\x15.gossip.GossipMessage(\x010\x01B!Z\x1fgrpc_gossip_simulator_fv/gossipb\x06proto3"
 

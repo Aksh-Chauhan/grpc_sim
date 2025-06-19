@@ -325,7 +325,7 @@ func processEvent(event *GossipEvent, stats map[uint32]int64) {
 
 			var grpcMsg gossip.GossipMessage // Use the imported protobuf message type
 			if err := proto.Unmarshal(protoPayloadBytes, &grpcMsg); err == nil {
-				payloadDisplay = fmt.Sprintf("Protobuf Msg: SenderID='%s', Content='%s'", grpcMsg.GetSenderId(), grpcMsg.GetContent())
+				payloadDisplay = fmt.Sprintf("Protobuf Msg: SenderID='%s', Content='%s'", grpcMsg.GetSenderIp(), grpcMsg.GetContent())
 			} else {
 				payloadDisplay = fmt.Sprintf("Unmarshal Error: %v | ProtoPayload (len %d): %x | Full gRPC Data Payload (len %d): %x",
 					err, len(protoPayloadBytes), protoPayloadBytes, len(grpcDataPayload), grpcDataPayload)

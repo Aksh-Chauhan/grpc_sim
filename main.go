@@ -57,7 +57,7 @@ func (s *gossipServer) GossipStream(stream gossip.GossipService_GossipStreamServ
 				log.Printf("%s: Error receiving message from stream: %v", s.config.id, err)
 				return
 			}
-			log.Printf("%s: Received message from %s: \"%s\"", s.config.id, req.GetSenderId(), req.GetContent())
+			log.Printf("%s: Received message from %s: \"%s\"", s.config.id, req.GetSenderIp(), req.GetContent())
 		}
 	}()
 
@@ -75,8 +75,9 @@ func (s *gossipServer) GossipStream(stream gossip.GossipService_GossipStreamServ
 			msgCount++
 			content := fmt.Sprintf("Hello from %s (msg %d)", s.config.id, msgCount)
 			err := stream.Send(&gossip.GossipMessage{
-				SenderId: s.config.id,
-				Content:  content,
+				SenderIp:   s.config.id,        // Assuming s.config.id is the sender's IP
+				ReceiverIp: s.config.connectIP, // Retrieve receiver's IP from context or set it appropriately
+				Content:    content,
 			})
 			if err != nil {
 				log.Printf("%s: Error sending message to stream: %v", s.config.id, err)
@@ -124,8 +125,11 @@ func startServer(cfg serverConfig, wg *sync.WaitGroup) {
 		log.Fatalf("%s: Failed to listen on %s: %v", cfg.id, listenAddr, err)
 	}
 
+	// Create a new gossip server instance
+	gossipServer := NewGossipServer(cfg) // Ensure this function is updated to handle the new message structure
+
 	s := grpc.NewServer(grpc.Creds(creds)) // Use TLS credentials
-	gossip.RegisterGossipServiceServer(s, NewGossipServer(cfg))
+	gossip.RegisterGossipServiceServer(s, gossipServer)
 
 	log.Printf("%s: Server listening on %s with mTLS", cfg.id, listenAddr)
 	if err := s.Serve(lis); err != nil {
@@ -133,6 +137,7 @@ func startServer(cfg serverConfig, wg *sync.WaitGroup) {
 	}
 }
 
+// startClient initializes a gRPC client with mTLS.
 // startClient initializes a gRPC client with mTLS.
 func startClient(cfg serverConfig, wg *sync.WaitGroup) {
 	defer wg.Done()
@@ -198,8 +203,9 @@ func startClient(cfg serverConfig, wg *sync.WaitGroup) {
 				msgCount++
 				content := fmt.Sprintf("Greetings from %s (client msg %d)", cfg.id, msgCount)
 				err := stream.Send(&gossip.GossipMessage{
-					SenderId: cfg.id,
-					Content:  content,
+					SenderIp:   cfg.id,                   // Assuming cfg.id is the sender's IP
+					ReceiverIp: os.Getenv("RECEIVER_IP"), // Set this to the appropriate receiver IP
+					Content:    content,
 				})
 				if err != nil {
 					log.Printf("%s: Error sending message to peer stream: %v", cfg.id, err)
@@ -220,7 +226,7 @@ func startClient(cfg serverConfig, wg *sync.WaitGroup) {
 			log.Printf("%s: Error receiving message from peer stream (client side): %v", cfg.id, err)
 			return
 		}
-		log.Printf("%s: Client received message from %s: \"%s\"", cfg.id, req.GetSenderId(), req.GetContent())
+		log.Printf("%s: Client received message from %s: \"%s\"", cfg.id, req.GetSenderIp(), req.GetContent())
 	}
 }
 
